@@ -1,0 +1,36 @@
+replicas: 1
+
+image:
+  repository: docker.elastic.co/elasticsearch/elasticsearch
+  tag: "7.13.1"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 9200
+
+env:
+  - name: discovery.type
+    value: single-node
+
+healthcheck:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 20
+  timeoutSeconds: 10
+  failureThreshold: 10
+
+# Persistent storage for indices (max 150MB). When limit is reached, oldest
+# indices are deleted by the log-rotation CronJob.
+persistence:
+  enabled: true
+  size: 150Mi
+  # storageClassName: ""  # use cluster default
+
+# Log rotation: delete oldest fluentd-* indices when total size exceeds limit
+rotation:
+  enabled: true
+  # Target max size (bytes). Rotation deletes oldest indices until under this.
+  maxSizeBytes: 140000000   # 140MB, leave headroom under 150MB
+  indexPattern: "fluentd-*"
+  schedule: "*/15 * * * *"  # every 15 minutes

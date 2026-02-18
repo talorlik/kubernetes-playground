@@ -1,0 +1,37 @@
+{{- if and .Values.persistence.enabled .Values.rotation.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "elasticsearch.fullname" . }}-rotation-script
+  labels:
+    {{- include "elasticsearch.labels" . | nindent 4 }}
+data:
+  rotate.sh: |
+    #!/bin/sh
+    # Delete oldest fluentd-* indices when total size exceeds maxSizeBytes.
+    set -e
+    ES_URL="${ES_URL:-http://localhost:9200}"
+    PATTERN="${INDEX_PATTERN:-fluentd-*}"
+    MAX_BYTES="${MAX_SIZE_BYTES:-140000000}"
+
+    RAW=$(curl -s "${ES_URL}/_cat/indices/${PATTERN}?h=index,store.size&s=index:asc&bytes=b" 2>/dev/null || true)
+    [ -z "$RAW" ] && exit 0
+
+    TOTAL=$(echo "$RAW" | awk '{s+=$2} END {print s+0}')
+    [ -z "$TOTAL" ] && TOTAL=0
+    if [ "$TOTAL" -le "$MAX_BYTES" ]; then
+      exit 0
+    fi
+
+    while read -r line; do
+      idx=$(echo "$line" | awk '{print $1}')
+      sz=$(echo "$line" | awk '{print $2}')
+      [ -z "$idx" ] && continue
+      [ -z "$sz" ] || [ "$sz" = "b" ] && sz=0
+      if [ "$TOTAL" -le "$MAX_BYTES" ]; then break; fi
+      curl -s -X DELETE "${ES_URL}/${idx}" >/dev/null 2>&1 || true
+      TOTAL=$((TOTAL - sz))
+    done <<ROTATE
+    $RAW
+    ROTATE
+{{- end }}

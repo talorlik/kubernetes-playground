@@ -1,0 +1,114 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fluentd.fullname" . }}-config
+  labels:
+    {{- include "fluentd.labels" . | nindent 4 }}
+data:
+  fluent.conf: |
+    <source>
+      @type forward
+      port 24224
+      bind 0.0.0.0
+    </source>
+
+    {{- if .Values.containerLogs.enabled }}
+    # Tail container logs from the node (pod/container logs)
+    <source>
+      @type tail
+      path {{ .Values.containerLogs.path }}
+      pos_file {{ .Values.containerLogs.posFile }}
+      tag kube.containers.*
+      read_from_head false
+      format json
+      time_key time
+      time_format %Y-%m-%dT%H:%M:%S.%N%Z
+    </source>
+    {{- end }}
+
+    {{- if .Values.nodeLogs.enabled }}
+    # Node (host) logs: syslog, messages
+    <source>
+      @type tail
+      path {{ join " " .Values.nodeLogs.paths }}
+      pos_file {{ .Values.nodeLogs.posFile }}
+      tag node.syslog
+      read_from_head false
+      format none
+    </source>
+    {{- end }}
+
+    {{- if .Values.journal.enabled }}
+    # Systemd journal (kubelet, runtime, control-plane components)
+    <source>
+      @type systemd
+      path {{ .Values.journal.path }}
+      path_run {{ .Values.journal.pathRun }}
+      tag {{ .Values.journal.tag }}
+      read_from_head false
+      <storage>
+        @type local
+        path /fluentd/logs/journal.pos
+        persistent true
+      </storage>
+      <entry>
+        fields_strip_underscores true
+        fields_lowercase true
+      </entry>
+    </source>
+    {{- end }}
+
+    # Parse Apache httpd access logs into structured fields:
+    # host, user, method, path, code (int), size (int)
+    <filter httpd>
+      @type parser
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error false
+      <parse>
+        @type regexp
+        expression /^(?<host>[^ ]*) [^ ]* (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^ ]*) +\S*)?" (?<code>[^ ]*) (?<size>[^ ]*)/
+        time_format %d/%b/%Y:%H:%M:%S %z
+        time_key time
+        keep_time_key false
+        types code:integer,size:integer
+      </parse>
+    </filter>
+
+    <match **>
+      @type copy
+      <store>
+        @type elasticsearch
+        host {{ .Values.elasticsearch.host | default (ternary (printf "%s-elasticsearch" .Values.stackName) "elasticsearch" (gt (len (toString .Values.stackName)) 0)) }}
+        port {{ .Values.elasticsearch.port }}
+        logstash_format true
+        logstash_prefix fluentd
+        logstash_dateformat %Y%m%d
+        include_tag_key true
+        suppress_type_name true
+        tag_key @log_name
+        <buffer>
+          flush_interval 1s
+        </buffer>
+      </store>
+      <store>
+        @type stdout
+      </store>
+      <store>
+        @type file
+        path /fluentd/logs
+        <buffer>
+          timekey 1h
+          timekey_use_utc true
+          timekey_wait 1m
+          timekey_zone +0300
+        </buffer>
+      </store>
+    </match>
+
+    # Suppress fluentd-internal log deprecation by routing them separately
+    <label @FLUENT_LOG>
+      <match **>
+        @type stdout
+      </match>
+    </label>

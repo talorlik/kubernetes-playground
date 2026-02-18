@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ingress
+description: Ingress for EFK stack (Kibana at kibana.local)
+type: application
+version: 0.0.1
+appVersion: "1.0"

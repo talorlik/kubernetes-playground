@@ -1,0 +1,26 @@
+# Ingress for EFK stack. Deploy after Kibana is running.
+# Requires an Ingress controller (e.g. ingress-nginx) in the cluster.
+
+ingressClassName: nginx
+
+# Optional annotations (e.g. for TLS, rate limit, body size)
+# ingressAnnotations: {}
+#   nginx.ingress.kubernetes.io/proxy-body-size: "0"
+
+# Optional TLS (uncomment and set your secret name)
+# tls:
+#   - hosts:
+#       - kibana.local
+#     secretName: kibana-local-tls
+
+# Kibana
+kibana:
+  host: kibana.local
+  serviceName: efk-stack-kibana
+  servicePort: 5601
+
+# Optional: add more hosts (e.g. httpd, Elasticsearch) in templates/ingress.yaml
+# httpd:
+#   host: httpd.local
+#   serviceName: efk-stack-httpd
+#   servicePort: 8888

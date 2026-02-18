@@ -1,0 +1,64 @@
+image:
+  repository: fluentd
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+build:
+  context: ./fluentd
+  dockerfile: Dockerfile
+
+healthcheck:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+service:
+  type: ClusterIP
+  ports:
+    - name: forward
+      port: 24224
+      targetPort: 24224
+      protocol: TCP
+    - name: forward-udp
+      port: 24224
+      targetPort: 24224
+      protocol: UDP
+
+# Stack name used to build Elasticsearch service name when elasticsearch.host
+# is not set (e.g. deploy.sh uses RELEASE_NAME; set stackName to match).
+stackName: "efk-stack"
+
+# Elasticsearch connection settings. When set (e.g. by deploy.sh), overrides
+# the default of stackName-elasticsearch.
+elasticsearch:
+  host: ""
+  port: 9200
+
+volumes:
+  config:
+    path: ./fluentd/conf
+  logs:
+    path: ./logs
+
+# Tail container logs from the node (pod/container logs)
+containerLogs:
+  enabled: true
+  path: /var/log/containers/*.log
+  posFile: /fluentd/logs/containers.log.pos
+
+# Node (host) logs: syslog, messages, etc.
+nodeLogs:
+  enabled: true
+  paths:
+    - /host/var/log/syslog      # Debian/Ubuntu
+    - /host/var/log/messages   # RHEL/CentOS/Rocky
+  posFile: /fluentd/logs/node.log.pos
+
+# Systemd journal (kubelet, container runtime, control-plane when logging to journald)
+journal:
+  enabled: true
+  path: /var/log/journal
+  pathRun: /run/log/journal
+  tag: node.journal

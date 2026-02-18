@@ -1,0 +1,31 @@
+replicas: 1
+
+image:
+  repository: docker.elastic.co/kibana/kibana
+  tag: "7.13.1"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 5601
+
+# Stack name used to build Elasticsearch service name when elasticsearch.host
+# is not set (must match the Elasticsearch release prefix, e.g. efk-stack).
+stackName: "efk-stack"
+
+# Elasticsearch connection settings. When set (e.g. by deploy.sh), overrides
+# the default of stackName-elasticsearch.
+elasticsearch:
+  host: ""
+  port: 9200
+
+# Extra env vars (ELASTICSEARCH_HOSTS is set from elasticsearch.host in the deployment)
+env: []
+
+healthcheck:
+  enabled: true
+  path: /api/status
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6

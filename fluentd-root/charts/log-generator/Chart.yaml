@@ -1,0 +1,6 @@
+apiVersion: v2
+name: log-generator
+description: Service that emits a log line every 5 seconds for Kibana
+type: application
+version: 0.0.1
+appVersion: "1.0"

@@ -1,0 +1,19 @@
+# Editor / IDE
+.history
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Logs and runtime (logs/ and runtime_data/ have their own)
+*.log
+tmp/
+temp/
+
+# OS
+.DS_Store

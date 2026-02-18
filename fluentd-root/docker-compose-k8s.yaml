@@ -1,0 +1,79 @@
+networks:
+  efk:
+    driver: bridge
+
+services:
+  httpd:
+    image: httpd
+    container_name: httpd
+    hostname: httpd
+    ports:
+      - "8888:80"
+    links:
+      - fluentd
+    depends_on:
+      - fluentd
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: fluentd:24224
+        fluentd-async: "true"
+        tag: httpd
+    networks:
+      - efk
+
+  fluentd:
+    build: ./fluentd
+    container_name: fluentd
+    hostname: fluentd
+    links:
+      - "elasticsearch"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    expose:
+      - 24224
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    volumes:
+      - ./fluentd/conf:/fluentd/etc
+      - ./logs/:/fluentd/logs
+    networks:
+      - efk
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.1
+    container_name: elasticsearch
+    hostname: elasticsearch
+    environment:
+      - discovery.type=single-node
+      #- node.store.allow_mmap=false
+    expose:
+      - 9200
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - efk
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.13.1
+    container_name: kibana
+    hostname: kibana
+    links:
+      - "elasticsearch"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    expose:
+      - 5601
+    ports:
+      - "5601:5601"
+    networks:
+      - efk

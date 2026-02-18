@@ -1,0 +1,6 @@
+apiVersion: v2
+name: kibana
+description: Kibana visualization service for EFK stack
+type: application
+version: 0.0.1
+appVersion: "7.13.1"

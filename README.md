@@ -41,7 +41,8 @@ You'll see nothing.
 
 Debug...
 
-You'll notice that since we deleted the servicesaccount.yaml file we have to mark in the values.yaml
+You'll notice that since we deleted the servicesaccount.yaml file we
+have to mark in the values.yaml
 
 ```yaml
 serviceAccount:
@@ -65,7 +66,9 @@ You'll see things are created but pod fails.
 
 Debug...
 
-The default image that the chart is installing is nginx. Nginx by default works on port 80. Since we've altered the port value to 8080 in the values.yaml file we broke it. Change it back and rerun.
+The default image that the chart is installing is nginx. Nginx by
+default works on port 80. Since we've altered the port value to 8080
+in the values.yaml file we broke it. Change it back and rerun.
 
 Deploy again:
 

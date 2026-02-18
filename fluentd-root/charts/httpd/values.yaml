@@ -1,0 +1,30 @@
+replicas: 1
+
+image:
+  repository: httpd
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8888
+  targetPort: 80
+
+# Stack name used to build Fluentd service address when logging.fluentdAddress
+# is not set (must match the Fluentd release prefix, e.g. efk-stack).
+stackName: "efk-stack"
+
+# Fluentd address for logging. When set (e.g. by deploy.sh), overrides the
+# default of stackName-fluentd:24224. In K8s the DaemonSet usually tails
+# container logs; this is for sidecars or when using a push-based logger.
+logging:
+  driver: fluentd
+  fluentdAddress: ""
+
+healthcheck:
+  enabled: true
+  path: /
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
